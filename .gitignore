@@ -1,0 +1,6 @@
+#YAML config files and sql template folders
+Configs/
+sql_templates/
+
+# IDE formatting folders
+.vscode
