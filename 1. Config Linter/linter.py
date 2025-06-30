@@ -1,8 +1,27 @@
 # linter.py
 
+import argparse 
+from config_validator import validate_config
+import os
+
+def find_config_path(filename, base_dir="Configs"):
+    for root, _, files in os.walk(base_dir):
+        if filename in files:
+            return os.path.join(root, filename)
+    return None
+
+
 def main():
-    print("===")
-    print("starting linter")
-    print("===")
+    parser = argparse.ArgumentParser(description="Lint YAML config files for templated SQL reports.")
+    parser.add_argument("config_path", help="Path to the YAML config file")
+
+    args = parser.parse_args()
+    config_file = args.config_path
+
+    path_to_config = find_config_path(config_file)
+
+    validate_config(path_to_config)
+
+
 if __name__ == "__main__":
     main()
