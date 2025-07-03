@@ -30,10 +30,12 @@ def parse_yamllint_errors(output):
 
 def fix_indentation(lines, i, message):
     expected_match = re.search(r"expected (\d+)", message)
+    found_match = re.search(r"found (\d+)", message)
     if not expected_match:
         return lines  # No expected indentation found; skip
     
     expected_indent = int(expected_match.group(1))
+    found_indent = int(found_match.group(1))
     current_line = lines[i]
     print("indented line: ", i+1," with fix_indentation() -> ", lines[i])
     lines[i] = " " * expected_indent + current_line.lstrip()
@@ -48,16 +50,20 @@ def fix_indentation(lines, i, message):
             j += 1
             continue
 
+        next_line = lines[j]
+
+        print("looking at child line: ", j+1, " -> ", next_line)
+
         current_indent = len(next_line) - len(next_line.lstrip())
 
         # Stop if we've reached a sibling or parent line
-        if current_indent <= expected_indent:
+        if current_indent <= found_indent:
+            print("indent of line: ", j+1, " is: ", current_indent, " and indent of found indent: ", found_indent, " so breaking out of loop")
             break
 
         # Re-indent child line: add 2 spaces for nesting
         print("indented child line: ", j+1," with fix_indentation() -> ", lines[j])
-        expected_indent += 2
-        lines[j] = " " * (expected_indent) + next_line.lstrip()
+        lines[j] = " " * (expected_indent) + next_line
         j += 1
 
 
@@ -89,7 +95,7 @@ def fix_syntax_error(lines, i):
     
 
     line = lines[i]
-    if "<block end>" in line or line.lstrip().startswith("-") or line.lstrip().startswith("?"):
+    if "<block end>" in line or line.lstrip().startswith("-"):
         # Look for previous non-empty line to estimate correct indent
         j = i - 1
         while j >= 0 and lines[j].strip() == "":
@@ -97,7 +103,6 @@ def fix_syntax_error(lines, i):
 
         if j >= 0:
             prev_indent = get_indent_level(lines[j])
-            current_indent = get_indent_level(lines[i])
 
             # If previous line starts with a dash and this item does not, this is part of the list item
             if lines[j].lstrip().startswith("-") and not lines[i].lstrip().startswith("-"):
@@ -106,17 +111,19 @@ def fix_syntax_error(lines, i):
                 new_indent = prev_indent
 
             # Step 2: Fix the current line
-            print("indented children line: ", i+1, " with fix_syntax() -> ", lines[i])
+            print("indented line: ", i+1, " with fix_syntax() -> ", lines[i])
             lines[i] = " " * new_indent + line.lstrip()
 
             # Step 3: Fix the block beneath it
             for k in range(i + 1, len(lines)):
                 next_line = lines[k]
+                print("looking at children line: ", k+1, " -> ", next_line)
                 if not is_block_line(next_line):
                     continue
 
                 # Check if we've reached a less-indented block or a new section
                 if get_indent_level(next_line) <= prev_indent:
+                    print("line: ", k+1, " is less indented than line: ", i+1, " -> ", next_line)
                     break
 
                 # Fix child line
