@@ -16,17 +16,18 @@ Currently, the linter is able to fix the following formatting errors:
 4. Missing '---' at the start of the document
 5. Line length - set at 120 characters but brought up as warning.
 
-#TODO: Add functionality where this runs when you save the fun rather than having to run the program on its own in the CLI.
 To run this whenever you save a yml file you will need to install the Run on Save extension in VSCode (https://marketplace.visualstudio.com/items?itemName=emeraldwalk.RunOnSave). Then add the following section to your settings.json file
 
+```json
 "emeraldwalk.runonsave": {
-"commands": [
-{
-"match": "\\.ya?ml$",
-"cmd": "python ${workspacefolder}\\1. Config Linter\\linter.py ${file}"
-}
-]
-}
+    "commands": [
+      {
+        "match": "\\.ya?ml$",
+        "cmd": "python ${workspacefolder}\\1. Config Linter\\linter.py ${file}"
+      }
+    ]
+  }
+```
 
 Once formatting is deemed to be sufficient, the program will move onto content-linting whereby the type-checking and other content specific linting will take place.
 
