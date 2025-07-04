@@ -135,6 +135,10 @@ def fix_syntax_error(lines, i):
     #lines[i] = " " * current_indent + "# SYNTAX ERROR - check manually:\n" + line
     return lines
 
+def fix_trailing_spaces(line):
+    line = line.rstrip() + "\n"
+    return line
+
 def auto_fix_yaml(filepath, output_dir=None):
     with open(filepath, 'r') as f:
         lines = f.readlines()
@@ -181,6 +185,8 @@ def auto_fix_yaml(filepath, output_dir=None):
                 lines = fix_indentation(lines, i, error['message'])
             elif rule == "colons":
                 lines[i] = fix_colon_spacing(lines[i], error['column'])
+            elif rule == "trailing-spaces":
+                lines[i] = fix_trailing_spaces(lines[i])
             elif rule == "document-start":
                 lines = fix_document_start(lines)
             elif rule == "line-length":
