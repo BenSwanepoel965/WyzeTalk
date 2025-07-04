@@ -37,7 +37,7 @@ def fix_indentation(lines, i, message):
     expected_indent = int(expected_match.group(1))
     found_indent = int(found_match.group(1))
     current_line = lines[i]
-    print("indented line: ", i+1," with fix_indentation() -> ", lines[i])
+    #print("indented line: ", i+1," with fix_indentation() -> ", lines[i])
     lines[i] = " " * expected_indent + current_line.lstrip()
 
     # Fix child lines — look ahead
@@ -52,17 +52,17 @@ def fix_indentation(lines, i, message):
 
         next_line = lines[j]
 
-        print("looking at child line: ", j+1, " -> ", next_line)
+        #print("looking at child line: ", j+1, " -> ", next_line)
 
         current_indent = len(next_line) - len(next_line.lstrip())
 
         # Stop if we've reached a sibling or parent line
         if current_indent <= found_indent:
-            print("indent of line: ", j+1, " is: ", current_indent, " and indent of found indent: ", found_indent, " so breaking out of loop")
+            #print("indent of line: ", j+1, " is: ", current_indent, " and indent of found indent: ", found_indent, " so breaking out of loop")
             break
 
         # Re-indent child line: add 2 spaces for nesting
-        print("indented child line: ", j+1," with fix_indentation() -> ", lines[j])
+        #print("indented child line: ", j+1," with fix_indentation() -> ", lines[j])
         lines[j] = " " * (expected_indent) + next_line
         j += 1
 
@@ -111,23 +111,23 @@ def fix_syntax_error(lines, i):
                 new_indent = prev_indent
 
             # Step 2: Fix the current line
-            print("indented line: ", i+1, " with fix_syntax() -> ", lines[i])
+            #print("indented line: ", i+1, " with fix_syntax() -> ", lines[i])
             lines[i] = " " * new_indent + line.lstrip()
 
             # Step 3: Fix the block beneath it
             for k in range(i + 1, len(lines)):
                 next_line = lines[k]
-                print("looking at children line: ", k+1, " -> ", next_line)
+                #print("looking at children line: ", k+1, " -> ", next_line)
                 if not is_block_line(next_line):
                     continue
 
                 # Check if we've reached a less-indented block or a new section
                 if get_indent_level(next_line) <= prev_indent:
-                    print("line: ", k+1, " is less indented than line: ", i+1, " -> ", next_line)
+                    #print("line: ", k+1, " is less indented than line: ", i+1, " -> ", next_line)
                     break
 
                 # Fix child line
-                print("indented children line: ", k+1, " with fix_syntax() -> ", lines[k])
+                #print("indented children line: ", k+1, " with fix_syntax() -> ", lines[k])
                 lines[k] = " " * (new_indent + 2) + next_line.lstrip()
             return lines
     # Otherwise just mark it
@@ -146,7 +146,9 @@ def auto_fix_yaml(filepath, output_dir=None):
     base_name = os.path.basename(filepath)
     name, ext = os.path.splitext(base_name)
     new_name = f"{name}_Corrected_Errors{ext}"
-    output_path = os.path.join(output_dir, new_name) if output_dir else os.path.join(os.path.dirname(filepath), new_name)
+    #output_path = os.path.join(output_dir, new_name) if output_dir else os.path.join(os.path.dirname(filepath), new_name)
+    output_path = filepath  # overwrite original file
+
 
     passes = 0
 
@@ -190,7 +192,6 @@ def auto_fix_yaml(filepath, output_dir=None):
             elif rule == "document-start":
                 lines = fix_document_start(lines)
             elif rule == "line-length":
-                # Could also ignore in config instead
                 lines[i] = fix_line_length(lines[i])
             elif rule == "syntax":
                 lines = fix_syntax_error(lines, i)
