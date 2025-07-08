@@ -20,13 +20,10 @@ def main():
     config_file = args.config_path
     print(config_file)
 
-    path_to_config = find_config_path(config_file)
+    path_to_config = config_file
+    #path_to_config = find_config_path(config_file)
 
     print("found file at: ", path_to_config)
-
-    with open("lint_log.txt", "a") as f:
-        f.write("linter.py ran successfully!\n")
-
 
     validate_config(path_to_config)
 

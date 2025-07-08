@@ -31,8 +31,16 @@ def parse_yamllint_errors(output):
 def fix_indentation(lines, i, message):
     expected_match = re.search(r"expected (\d+)", message)
     found_match = re.search(r"found (\d+)", message)
+    at_least_match = re.search(r"at least (\d+)", message)
+
+    if at_least_match:
+        at_least_indent = int(at_least_match.group(1))
+        lines[i] = " " * at_least_indent + lines[i].lstrip()
+
     if not expected_match:
         return lines  # No expected indentation found; skip
+    if not found_match:
+        return lines
     
     expected_indent = int(expected_match.group(1))
     found_indent = int(found_match.group(1))
@@ -80,11 +88,11 @@ def fix_colon_spacing(line_text, col_index):
     after = line_text[col_index + 1:].lstrip()
     return before + after
 
-def fix_line_length(line_text, max_length=80):
+def fix_line_length(line_text, max_length=120):
     # Just truncate for now or ignore in config instead
     return line_text[:max_length] + "\n"
 
-def fix_syntax_error(lines, i):
+def fix_syntax_error(lines, i, message):
     def get_indent_level(line):
         return len(line) - len(line.lstrip())
 
@@ -93,46 +101,53 @@ def fix_syntax_error(lines, i):
         stripped = line.strip()
         return bool(stripped) and not stripped.startswith("#")
     
+    error = re.search(r"but found '([^']+)'", message)
+    if error:
+        symbol = error.group(1)
+        line = lines[i]
+        if "<block end>" in message and symbol in ['-', '?']:
+            # Look for previous non-empty line to estimate correct indent
+            j = i - 1
+            while j >= 0 and lines[j].strip() == "":
+                j -= 1
 
-    line = lines[i]
-    if "<block end>" in line or line.lstrip().startswith("-"):
-        # Look for previous non-empty line to estimate correct indent
-        j = i - 1
-        while j >= 0 and lines[j].strip() == "":
-            j -= 1
+            if j >= 0:
+                prev_indent = get_indent_level(lines[j])
 
-        if j >= 0:
-            prev_indent = get_indent_level(lines[j])
+                # If previous line starts with a dash and this item does not, this is part of the list item
+                if lines[j].lstrip().startswith("-") and not lines[i].lstrip().startswith("-"):
+                    new_indent = prev_indent + 2
+                else:
+                    new_indent = prev_indent
 
-            # If previous line starts with a dash and this item does not, this is part of the list item
-            if lines[j].lstrip().startswith("-") and not lines[i].lstrip().startswith("-"):
-                new_indent = prev_indent + 2
-            else:
-                new_indent = prev_indent
+                # Step 2: Fix the current line
+                print("indented line: ", i+1, " with fix_syntax() -> ", lines[i])
+                lines[i] = " " * new_indent + line.lstrip()
 
-            # Step 2: Fix the current line
-            print("indented line: ", i+1, " with fix_syntax() -> ", lines[i])
-            lines[i] = " " * new_indent + line.lstrip()
+                # Step 3: Fix the block beneath it
+                for k in range(i + 1, len(lines)):
+                    next_line = lines[k]
+                    print("looking at children line: ", k+1, " -> ", next_line)
+                    if not is_block_line(next_line):
+                        continue
 
-            # Step 3: Fix the block beneath it
-            for k in range(i + 1, len(lines)):
-                next_line = lines[k]
-                print("looking at children line: ", k+1, " -> ", next_line)
-                if not is_block_line(next_line):
-                    continue
+                    # Check if we've reached a less-indented block or a new section
+                    if get_indent_level(next_line) <= prev_indent:
+                        #print("line: ", k+1, " is less indented than line: ", i+1, " -> ", next_line)
+                        break
 
-                # Check if we've reached a less-indented block or a new section
-                if get_indent_level(next_line) <= prev_indent:
-                    #print("line: ", k+1, " is less indented than line: ", i+1, " -> ", next_line)
-                    break
+                    # Fix child line
+                    print("indented children line: ", k+1, " with fix_syntax() -> ", lines[k])
+                    lines[k] = " " * (new_indent + 2) + next_line.lstrip() # took a +2 out of the new_indent bracket
+                return lines
+  
 
-                # Fix child line
-                print("indented children line: ", k+1, " with fix_syntax() -> ", lines[k])
-                lines[k] = " " * (new_indent + 2) + next_line.lstrip() # took a +2 out of the new_indent bracket
-            return lines
     # Otherwise just mark it
     current_indent = get_indent_level(lines[i])
     #lines[i] = " " * current_indent + "# SYNTAX ERROR - check manually:\n" + line
+    return lines
+
+def fix_empty_lines(lines):
     return lines
 
 def fix_trailing_spaces(line):
@@ -146,8 +161,8 @@ def auto_fix_yaml(filepath, output_dir=None):
     base_name = os.path.basename(filepath)
     name, ext = os.path.splitext(base_name)
     new_name = f"{name}_Corrected_Errors{ext}"
-    output_path = os.path.join(output_dir, new_name) if output_dir else os.path.join(os.path.dirname(filepath), new_name)
-    #output_path = filepath  # overwrite original file
+    #output_path = os.path.join(output_dir, new_name) if output_dir else os.path.join(os.path.dirname(filepath), new_name)
+    output_path = filepath  # overwrite original file
 
 
     passes = 0
@@ -167,7 +182,7 @@ def auto_fix_yaml(filepath, output_dir=None):
         print("======\n")
         
         if not output:
-            print(f"✅ YAML clean after {passes} pass(es)")
+            print(f"YAML clean after {passes} pass(es)")
             break
 
         # Fix errors
@@ -194,38 +209,23 @@ def auto_fix_yaml(filepath, output_dir=None):
             elif rule == "line-length":
                 lines[i] = fix_line_length(lines[i])
             elif rule == "syntax":
-                lines = fix_syntax_error(lines, i)
+                lines = fix_syntax_error(lines, i, error['message'])
+            elif rule == "empty-lines":
+                lines = fix_empty_lines(lines)
 
         passes += 1
 
     else:
-        print(f"⚠️ Max passes ({max_passes}) reached. YAML may still contain issues.")
+        print(f"Max passes ({max_passes}) reached. YAML may still contain issues.")
 
-    return output_path, passes
+    return output_path
 
 def validate_syntax(config_path):
     ok, output = yamllint_check(config_path)
 
-    old_config_path = config_path
-
-
     if ok:
         print("\nThe provided .yaml file has no formatting errors.\n")
     else:
-        print('The provided .yaml file has initial formatting errors listed below:\n', output)
-        yes_no = input('Would you like to auto-repair the file? A new file will be created rather than modifying the provided one.\nyes/no\n').lower().strip()
+        config_path = auto_fix_yaml(config_path, "Configs\\Corrected Versions")
 
-        if yes_no in ['yes', 'y']:
-            print('making new corrected file')
-            old_config_path = config_path
-            config_path = auto_fix_yaml(config_path, "Configs\\Corrected Versions")
-            print("Corrected file has been saved as: ", config_path)
-        elif yes_no in ['no', 'n']:
-            print('No corrected file will be made. The linting cannot continue, however, without a syntactically correct .yaml file.')
-            return None, None
-        else:
-            print("Invalid input. Please enter 'yes' or 'no'.")
-            return None, None
-
-
-    return old_config_path, config_path
+    return config_path
