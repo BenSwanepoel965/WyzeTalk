@@ -6,6 +6,7 @@ import os
 
 def find_config_path(filename, base_dir="Configs"):
     for root, _, files in os.walk(base_dir):
+        
         if filename in files:
             return os.path.join(root, filename)
     return None
@@ -17,10 +18,15 @@ def main():
 
     args = parser.parse_args()
     config_file = args.config_path
+    print(config_file)
 
     path_to_config = find_config_path(config_file)
 
-    #print("found file at: ", path_to_config)
+    print("found file at: ", path_to_config)
+
+    with open("lint_log.txt", "a") as f:
+        f.write("linter.py ran successfully!\n")
+
 
     validate_config(path_to_config)
 

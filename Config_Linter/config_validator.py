@@ -31,8 +31,6 @@ def validate_config(config_path):
     errors = [] # maybe make this a key-value pair to aid in counting errors at which line as well as printing them out again
     params = {}
 
-    print(config_path)
-
     old_config_path, config_path = validate_syntax(config_path)
 
     return
