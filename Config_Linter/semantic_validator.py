@@ -1,9 +1,7 @@
-# config_validator.py
+# semantic_validator.py
+
 import yaml
 from jinja2 import Environment, meta
-from syntax_validator import validate_syntax
-
-max_passes = 10
 
 def get_sql_template_and_params(yaml_file):
     inputs = yaml_file.get("inputs", [])
@@ -27,14 +25,7 @@ def extract_jinja_variables(sql_text):
     ast = env.parse(sql_text)
     return meta.find_undeclared_variables(ast)
 
-def validate_config(config_path):
-    errors = [] # maybe make this a key-value pair to aid in counting errors at which line as well as printing them out again
-    params = {}
-
-    config_path = validate_syntax(config_path)
-
-    return
-    
+def validate_semantics(config_path):
     try:
         with open(config_path, "r") as f:
             config = yaml.safe_load(f)
@@ -44,7 +35,7 @@ def validate_config(config_path):
     
 
     sql_template_name, params = get_sql_template_and_params(config)
-    print("=== Here are the params found in the .yaml file to be rendered into the SQL template by Jinja ===\n")
+    print("\n=== Here are the params found in the .yaml file to be rendered into the SQL template by Jinja ===\n")
     print(params)
     print("===")
     sql_template = load_sql_template(sql_template_name[4:])
@@ -55,4 +46,4 @@ def validate_config(config_path):
     print(vars)
     print("===")
 
-    return
+    return config_path

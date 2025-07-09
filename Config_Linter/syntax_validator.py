@@ -154,7 +154,7 @@ def fix_trailing_spaces(line):
     line = line.rstrip() + "\n"
     return line
 
-def auto_fix_yaml(filepath, output_dir=None):
+def auto_fix_yaml(filepath, lintpath = ".yamllint"):
     with open(filepath, 'r') as f:
         lines = f.readlines()
 
@@ -164,6 +164,7 @@ def auto_fix_yaml(filepath, output_dir=None):
     #output_path = os.path.join(output_dir, new_name) if output_dir else os.path.join(os.path.dirname(filepath), new_name)
     output_path = filepath  # overwrite original file
 
+    previous_output = ""
 
     passes = 0
 
@@ -177,6 +178,13 @@ def auto_fix_yaml(filepath, output_dir=None):
             capture_output=True, text=True
         )
         output = result.stdout.strip()
+
+        if previous_output == output:
+            print("No more fixes possible but more errors are present. Please review your .yaml file. The errors are as follows: \n")
+            print(output)
+            return output_path
+
+        previous_output = output
         print(f"\n=== Pass {passes} ===\n")
         print(output)
         print("======\n")

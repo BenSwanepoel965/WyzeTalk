@@ -8,15 +8,15 @@ Given a .yaml config file, a linter is used to check the validity of the content
 
 The .yamllint file is used to tweak and alter the formatting rules used to check the validity of the provided .yaml file. Based off of the errors provided, the linter will then make passes through the erroneous file and attempt to fix them. After each pass, the formatting check is run again afterwhich the linting process proceeds again if errors are still present.
 
-Currently, the linter is able to fix the following formatting errors:
+Currently, as of 09/07/2025, the linter is able to fix the following syntactical formatting errors:
 
-1. Indentation
+1. General indentation
 2. Spacing before and after colons
 3. Trailing spaces at end of lines
 4. Missing '---' at the start of the document
 5. Line length - set at 120 characters but brought up as warning.
 
-To run this whenever you save a yml file you will need to install the Run on Save extension in VSCode (https://marketplace.visualstudio.com/items?itemName=emeraldwalk.RunOnSave). Then add the following section to your settings.json file
+To run this whenever you save a .yaml file you will need to install the Emeraldwalk RunOnSave extension in VSCode (https://marketplace.visualstudio.com/items?itemName=emeraldwalk.RunOnSave). Then add the following section to your user settings.json file (accessed through CTRL + p and searching for it in the popup bar)
 
 ```json
 "emeraldwalk.runonsave": {
@@ -29,7 +29,7 @@ To run this whenever you save a yml file you will need to install the Run on Sav
   }
 ```
 
-Once formatting is deemed to be sufficient, the program will move onto content-linting whereby the type-checking and other content specific linting will take place.
+Once syntactical formatting is deemed to be sufficient or it reaches a collection of errors it cannot fix, the program will move onto semantical content-linting whereby the type-checking and other content specific linting will take place. This is done using predetermined schema, 1 for the general file and 1 for the sql_params section specific to the sql template listed before it in the sql_template field.
 
 ## 2. Report CoPilot
 

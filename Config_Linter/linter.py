@@ -1,8 +1,9 @@
 # linter.py
 
-import argparse 
-from config_validator import validate_config
+import argparse
 import os
+from syntax_validator import validate_syntax
+from semantic_validator import validate_semantics
 
 def find_config_path(filename, base_dir="Configs"):
     for root, _, files in os.walk(base_dir):
@@ -20,12 +21,14 @@ def main():
     config_file = args.config_path
     print(config_file)
 
-    path_to_config = config_file
-    #path_to_config = find_config_path(config_file)
+    #path_to_config = config_file
+    path_to_config = find_config_path(config_file)
 
     print("found file at: ", path_to_config)
 
-    validate_config(path_to_config)
+    path_to_config = validate_syntax(path_to_config)
+
+    path_to_config = validate_semantics(path_to_config)
 
 
 if __name__ == "__main__":
