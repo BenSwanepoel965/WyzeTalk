@@ -16,7 +16,7 @@ Currently, as of 09/07/2025, the linter is able to fix the following syntactical
 4. Missing '---' at the start of the document
 5. Line length - set at 120 characters but brought up as warning.
 
-To run this whenever you save a .yaml file you will need to install the Emeraldwalk RunOnSave extension in VSCode (https://marketplace.visualstudio.com/items?itemName=emeraldwalk.RunOnSave). Then add the following section to your user settings.json file (accessed through CTRL + p and searching for it in the popup bar)
+To run this whenever you save a .yaml file you will need to install the Emeraldwalk RunOnSave extension in VSCode (https://marketplace.visualstudio.com/items?itemName=emeraldwalk.RunOnSave). Then add the following section to your user settings.json file (accessed through <CTRL + P> and searching for it in the popup bar)
 
 ```json
 "emeraldwalk.runonsave": {
