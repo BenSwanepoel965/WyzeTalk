@@ -26,7 +26,7 @@ def main():
 
     print("found file at: ", path_to_config)
 
-    path_to_config = validate_syntax(path_to_config)
+    #path_to_config = validate_syntax(path_to_config)
 
     path_to_config = validate_semantics(path_to_config)
 
