@@ -4,6 +4,19 @@ import yaml
 from jinja2 import Environment, meta
 from datetime import date
 
+type_map = {
+    "str": str,
+    "int": int,
+    "float": float,
+    "bool": bool,
+    "list": list,
+    "dict": dict,
+    "null": type(None),
+    "none": type(None),
+    "date": str, 
+    "datetime": str
+}
+
 def get_sql_template_and_params(inputs):
 
     if not inputs or not isinstance(inputs[0], dict):
@@ -13,7 +26,11 @@ def get_sql_template_and_params(inputs):
     sql_template = input_entry.get("sql_template")
     sql_params = input_entry.get("sql_params", {})
 
-    return sql_template, sql_params
+    with open(sql_template) as f:
+        raw = yaml.safe_load(f)
+    sql_schema =  {k: parse_type(v) for k, v in raw.items()}
+
+    return sql_template, sql_params, sql_schema
         
 def load_sql_template(template_name, folder="sql_templates"):
     path = f"{folder}/{template_name}"
@@ -25,7 +42,7 @@ def extract_jinja_variables(sql_text):
     ast = env.parse(sql_text)
     return meta.find_undeclared_variables(ast)
 
-def validate_dags(data: dict) -> list:
+def validate_dags(data) -> list:
     dag_schema = {
         'owner': str,
         'domain_id': int,
@@ -39,6 +56,10 @@ def validate_dags(data: dict) -> list:
 
     errors = []
 
+    if not isinstance(data, dict):
+        errors.append(f"dag should be of type dict but got {type(data).__name__}")
+        return errors
+
     for key, expected_type in dag_schema.items():
         if key not in data:
             errors.append(f"dag.{key} is missing.")
@@ -50,13 +71,57 @@ def validate_dags(data: dict) -> list:
 
     return errors
 
-def validate_inputs(data:dict) -> list:
+def parse_type(val):
+    if isinstance(val, list):
+        return tuple(type_map[v] for v in val)
+    return type_map[val]
 
-    sql_template, params = get_sql_template_and_params(data)
+def validate_inputs(inputs) -> list:
+    errors = []
+
+    input_schema = {
+        'operation': str,
+        'redis_conn_id': str,
+        'jdbc_conn_id': str,
+        'pre_sql_template': str,
+        'sql_template': str,
+        'sql_params': list,
+        'id': str
+    }
+
+    if not isinstance(inputs, dict):
+        errors.append(f"inputs should be of type dict but got {type(inputs).__name__}")
+        return errors
+    
+    for key, expected_type in input_schema.items():
+        if key not in inputs:
+            errors.append(f"inputs.{key} is missing.")
+        elif not isinstance(inputs[key], expected_type):
+            errors.append(
+                f"inputs.{key} should be of type {expected_type.__name__}, "
+                f"but got {type(inputs[key]).__name__}."
+            )
+
+    sql_template, params, expected_schema = get_sql_template_and_params(inputs)
     print("Sql template: ", sql_template)
     print("params: ", params)
+    print("sql schema: ", expected_schema)
 
-    errors = []
+    # Check for missing fields
+    for key in expected_schema:
+        if key not in params:
+            errors.append(f"sql_params.{key} is missing.")
+        elif not isinstance(params[key], expected_schema[key]):
+            expected_name = (
+                ", ".join([t.__name__ for t in expected_schema[key]])
+                if isinstance(expected_schema[key], tuple)
+                else expected_schema[key].__name__
+            )
+            errors.append(
+                f"sql_params.{key} should be {expected_name}, "
+                f"got {type(params[key]).__name__}."
+            )
+
     return errors
 
 def validate_semantics(config_path):
@@ -81,6 +146,8 @@ def validate_semantics(config_path):
     else:
         input_errors = validate_inputs(data["inputs"])
         errors.extend(input_errors)
+
+    # add functionality for the outputs section in the file
 
     if not errors:
         print("No type-checking errors.")
