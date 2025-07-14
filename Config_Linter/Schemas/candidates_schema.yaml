@@ -2,7 +2,7 @@ domain_id: list
 total_reg: bool
 m_client_details: str
 total_active_reg: int
-date_details: date
+date_details: str
 having: str
 reg_perc: str
 order_by: str

@@ -1,0 +1,11 @@
+segment_filters: dict 
+extra_join: str
+having: str
+extra_select: str
+property_keys: str
+extra_cte: str
+domain_id: list
+extra_group_by: str
+order_by: str
+extra_where: str
+segment_keys: str

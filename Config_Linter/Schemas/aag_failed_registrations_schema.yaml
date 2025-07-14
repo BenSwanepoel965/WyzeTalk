@@ -1,0 +1,8 @@
+extra_where: str
+extra_select: str
+order_by: str
+extra_join: str
+extra_cte: str
+report_period: str
+domain_id: list
+extra_group_by: str
