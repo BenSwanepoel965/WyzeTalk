@@ -4,7 +4,7 @@ Work done for Wyzetalk during the period of 30 Jun - 18 Jul. 3 folders for 3 pro
 
 ## 1. Config Linter
 
-Given a .yaml config file, a linter is used to check the validity of the contents inside i.t.o. syntactical and YAML formatting errors, but also config values that are invalid for the SQL template specified by the .yaml file itself.
+Given a .yaml config file, a linter is used to check the validity of the contents inside i.t.o. syntactical and YAML formatting errors, but also config values that are invalid for the SQL template specified by the .yaml file itself, by Wyzetalk standards.
 
 The .yamllint file is used to tweak and alter the formatting rules used to check the validity of the provided .yaml file. Based off of the errors provided, the linter will then make passes through the erroneous file and attempt to fix them. After each pass, the formatting check is run again afterwhich the linting process proceeds again if errors are still present.
 
@@ -30,6 +30,11 @@ To run this whenever you save a .yaml file you will need to install the Emeraldw
 ```
 
 Once syntactical formatting is deemed to be sufficient or it reaches a collection of errors it cannot fix, the program will move onto semantical content-linting whereby the type-checking and other content specific linting will take place. This is done using predetermined schema, 1 for the general file and 1 for the sql_params section specific to the sql template listed before it in the sql_template field.
+
+The output (in the output panel) will be of the following form:
+
+1. [error] Field '<field in .yaml file>' should be <expected type>, got <found type>.
+2. [info] <field in SQL template file> was found in the SQL template but not in the config file.
 
 ## 2. Report CoPilot
 

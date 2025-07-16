@@ -9,7 +9,7 @@ def yamllint_check(filepath, lint_path=".yamllint"):
     result = subprocess.run(['yamllint', '-c', lint_path, filepath], capture_output=True, text=True)
     if result.returncode not in [0, 1]:
         print("There was a problem running .yamllint. Please ensure your system has the yamllint library installed.")
-        return
+        return None, None
     else:
         return result.returncode == 0, result.stdout
 
@@ -230,6 +230,10 @@ def auto_fix_yaml(filepath, lintpath = ".yamllint"):
 
 def validate_syntax(config_path):
     ok, output = yamllint_check(config_path)
+
+    if ok == None:
+        print("Error with finding initial errors in .yaml file.")
+        return config_path
 
     if ok:
         print("\nThe provided .yaml file has no formatting errors.\n")
