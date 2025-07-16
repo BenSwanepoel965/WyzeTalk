@@ -33,8 +33,8 @@ Once syntactical formatting is deemed to be sufficient or it reaches a collectio
 
 The output (in the output panel) will be of the following form:
 
-1. [error] Field '<field in .yaml file>' should be <expected type>, got <found type>.
-2. [info] <field in SQL template file> was found in the SQL template but not in the config file.
+1. [error] Field '<field in .yaml file>' should be '<expected type>', got '<found type>'.
+2. [info] '<field in SQL template file>' was found in the SQL template but not in the config file.
 
 ## 2. Report CoPilot
 
