@@ -55,8 +55,8 @@ Once syntactical formatting is deemed to be sufficient or it reaches a collectio
 The output (in the output panel) will be of the following form:
 
 ```text
-1. [error] Field 'field in .yaml file' should be 'expected type', got 'found type'. 
-2. [info] 'field in SQL template/schema file' was found in the SQL template/schema but not in the config file.
+1. [error] Field <field in .yaml file> should be <expected type>, got <found type>. 
+2. [info] <Field in SQL template/schema file> was found in the SQL template/schema but not in the config file.
 ```
 
 The [error] outputs are to be fixed as they may cause issues in the running of the SQL command down the line. The [info] outputs are there to highlight any fields expected by the schema but not found. These are not erroneous to the SQL command, however.
