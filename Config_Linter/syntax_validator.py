@@ -2,10 +2,21 @@
 import subprocess
 import re
 import os
+from pathlib import Path
 
 max_passes = 20
 
+def find_lint_path(filename, base_dir="Config_Linter"):
+    for root, _, files in os.walk(base_dir):
+        
+        if filename in files:
+            return os.path.join(root, filename)
+    return None
+
 def yamllint_check(filepath, lint_path=".yamllint"):
+
+    lint_path = find_lint_path(lint_path)
+
     result = subprocess.run(['yamllint', '-c', lint_path, filepath], capture_output=True, text=True)
     if result.returncode not in [0, 1]:
         print("There was a problem running .yamllint. Please ensure your system has the yamllint library installed.")
@@ -45,7 +56,7 @@ def fix_indentation(lines, i, message):
     expected_indent = int(expected_match.group(1))
     found_indent = int(found_match.group(1))
     current_line = lines[i]
-    print("indented line: ", i+1," with fix_indentation() -> ", lines[i])
+    #print("indented line: ", i+1," with fix_indentation() -> ", lines[i])
     lines[i] = " " * expected_indent + current_line.lstrip()
 
     # Fix child lines — look ahead
@@ -60,23 +71,23 @@ def fix_indentation(lines, i, message):
 
         next_line = lines[j]
 
-        print("looking at child line: ", j+1, " -> ", next_line)
+        #print("looking at child line: ", j+1, " -> ", next_line)
 
         current_indent = len(next_line) - len(next_line.lstrip())
 
         # Stop if we've reached a sibling or parent line
         if current_indent <= found_indent:
-            print("indent of line: ", j+1, " is: ", current_indent, " and indent of found indent: ", found_indent, " so breaking out of loop")
+            
+            #print("indent of line: ", j+1, " is: ", current_indent, " and indent of found indent: ", found_indent, " so breaking out of loop")
             break
 
         # Re-indent child line: add 2 spaces for nesting
-        print("indented child line: ", j+1," with fix_indentation() -> ", lines[j])
+        #print("indented child line: ", j+1," with fix_indentation() -> ", lines[j])
         lines[j] = " " * (expected_indent) + next_line
         j += 1
 
 
     return lines
-
 
 def fix_document_start(lines):
     if not lines[0].strip().startswith("---"):
@@ -121,13 +132,13 @@ def fix_syntax_error(lines, i, message):
                     new_indent = prev_indent
 
                 # Step 2: Fix the current line
-                print("indented line: ", i+1, " with fix_syntax() -> ", lines[i])
+                #print("indented line: ", i+1, " with fix_syntax() -> ", lines[i])
                 lines[i] = " " * new_indent + line.lstrip()
 
                 # Step 3: Fix the block beneath it
                 for k in range(i + 1, len(lines)):
                     next_line = lines[k]
-                    print("looking at children line: ", k+1, " -> ", next_line)
+                    #print("looking at children line: ", k+1, " -> ", next_line)
                     if not is_block_line(next_line):
                         continue
 
@@ -137,7 +148,7 @@ def fix_syntax_error(lines, i, message):
                         break
 
                     # Fix child line
-                    print("indented children line: ", k+1, " with fix_syntax() -> ", lines[k])
+                    #print("indented children line: ", k+1, " with fix_syntax() -> ", lines[k])
                     lines[k] = " " * (new_indent + 2) + next_line.lstrip() # took a +2 out of the new_indent bracket
                 return lines
   
@@ -173,8 +184,10 @@ def auto_fix_yaml(filepath, lintpath = ".yamllint"):
             f.writelines(lines)
 
         # Run yamllint
+        lint_path = '.yamllint'
+        lint_path = find_lint_path(lint_path)
         result = subprocess.run(
-            ['yamllint', '--format', 'parsable', output_path],
+            ['yamllint', '--format', 'parsable', '-c', lint_path, output_path],
             capture_output=True, text=True
         )
         output = result.stdout.strip()
@@ -185,12 +198,12 @@ def auto_fix_yaml(filepath, lintpath = ".yamllint"):
             return output_path
 
         previous_output = output
-        print(f"\n=== Pass {passes} ===\n")
-        print(output)
-        print("======\n")
+        #print(f"\n=== Pass {passes} ===\n")
+        #print(output)
+        #print("======\n")
         
         if not output:
-            print(f"YAML clean after {passes} pass(es)")
+            print(filepath, "has been cleaned.")
             break
 
         # Fix errors
@@ -238,6 +251,6 @@ def validate_syntax(config_path):
     if ok:
         print("\nThe provided .yaml file has no formatting errors.\n")
     else:
-        config_path = auto_fix_yaml(config_path, "Configs\\Corrected Versions")
+        config_path = auto_fix_yaml(config_path)
 
     return config_path

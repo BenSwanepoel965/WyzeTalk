@@ -5,6 +5,7 @@ from ruamel.yaml import YAML
 from jinja2 import Environment, meta
 from datetime import date
 from pathlib import Path
+from collections import defaultdict
 
 ruamel_yaml = YAML()
 ruamel_yaml.preserve_quotes = True
@@ -74,19 +75,17 @@ def validate_dags(data, config_path, yaml_data) -> list:
     
     node = yaml_data['dag']
     for key, expected_type in dag_schema.items():
+        key_line = node.lc.key(key)[0]
+        key_line = (key_line + 1) if key_line is not None else section_line
         if key not in data:
-            errors.append(f"{filename}:{section_line}:0: [error] Missing field 'dag.{key}'")
+            errors.append(f"{filename}:{key_line}:0: [info] dag.{key} was found in the schema but not in the config file.")
         elif not isinstance(data[key], expected_type):
             actual_type = type(data[key]).__name__
             expected_name = expected_type.__name__
-            key_line = node.lc.key(key)[0]
-            key_line = (key_line + 1) if key_line is not None else section_line
             errors.append(
                     f"{filename}:{key_line}:0: [error] Field 'dag.{key}' should be {expected_name}, got {actual_type}"
             )
 
-    if not errors:
-        errors.append(f"No errors in dag section.")
     return errors
 
 def parse_type(val):
@@ -121,7 +120,7 @@ def validate_inputs(inputs, config_path, yaml_data) -> list:
             #print("key: ", key)
             #print("expected type: ", expected_type)
             if key not in item:
-                errors.append(f"{filename}:{node_line}:0: [error] Missing field 'inputs[{i}].{key}'")
+                errors.append(f"{filename}:{node_line}:0: [info] inputs.{key} was found in the schema but not in the config file.")
             elif not isinstance(item[key], expected_type):
                 if not isinstance(item[key], type(None)):
                     actual_type = type(item[key]).__name__
@@ -155,15 +154,127 @@ def validate_inputs(inputs, config_path, yaml_data) -> list:
 
     return errors
 
-def validate_output(outputs, config_path) -> list:
-    errors = []
-    return errors
+def validate_output(data, config_path, yaml_data) -> list:
 
-def report_issue(file_path, line, column, message, level="error"):
-    print(f"{file_path}:{line}:{column}: [{level}] {message}")
+    output_schema = {
+        'process': str,
+        'operations': dict,
+        'id': str
+    }
+
+    operations_schema = {
+        'UploadToAzureStorageFromRedis': dict,
+        'GenerateSasLink': dict,
+        'Email': dict,
+    }
+
+    upload_schema = {
+        'redis_conn_id': str,
+        'container_name': str,
+        'folder_path': str,
+        'filename': str,
+        'file_type': str,
+        'password': str
+    }
+
+    email_schema  = {
+        'recipients': list,
+        'bcc_recipients': list,
+        'subject': str,
+        'body': str
+    }
+
+
+    errors = []
+    filename = Path(config_path).name
+
+    section_line = yaml_data.lc.key('ouputs')[0]
+    section_line = (section_line + 1) if section_line is not None else 0
+
+    if not isinstance(data, list):
+        errors.append(f"{filename}:{section_line}:0: [error] outputs should be a list, got {type(data).__name__}")
+        return errors
+    
+    node = yaml_data['ouputs']
+
+    for i, entry in enumerate(data):
+        if not isinstance(entry, dict):
+            errors.append(f"{filename}:{section_line}:0: [error] outputs should be a dict, got {type(entry).__name__}")
+            continue
+
+        for key, expected_type in output_schema.items():
+            key_line = node[i].lc.key(key)[0] if node[i].lc.key(key) is not None else section_line
+            key_line = (key_line + 1) if key_line is not None else section_line
+
+            if key not in entry:
+                errors.append(f"{filename}:{key_line}:0: [info] outputs.{key} was found in the schema but not in the config file.")
+            elif not isinstance(entry[key], expected_type):
+                actual_type = type(entry[key]).__name__
+                expected_name = expected_type.__name__
+                errors.append(f"{filename}:{key_line}:0: [error] Field 'outputs.{key}' should be {expected_name}, got {actual_type}")
+
+        if 'operations' in entry:
+            if isinstance(entry['operations'], dict):
+                ops = entry['operations']
+                for op_key, expected_type in operations_schema.items():
+                    op_line = node[i]['operations'].lc.key(op_key)[0] if node[i]['operations'].lc.key(op_key) else section_line
+                    op_line = (op_line + 1) if op_line is not None else section_line
+
+                    if op_key not in ops:
+                        errors.append(f"{filename}:{op_line}:0: [info] outputs.operations.{op_key} was found in the schema but not in the config file.")
+                        continue
+                    elif not isinstance(ops[op_key], expected_type) and ops[op_key] is not None:
+                        actual_type = type(ops[op_key]).__name__
+                        expected_name = expected_type.__name__
+                        errors.append(f"{filename}:{op_line}:0: [error] outputs.operations.{op_key} should be {expected_name}, got {actual_type}")
+                        continue
+
+                    # Validate inner structures
+                    if op_key == 'UploadToAzureStorageFromRedis':
+                        if isinstance(ops[op_key], dict):
+                            for field, expected_type in upload_schema.items():
+                                if field not in ops[op_key]:
+                                    errors.append(f"{filename}:{op_line}:0: [info] outputs.operations.{op_key}.{field} was found in the schema but not in the config file.")
+                                elif not isinstance(ops[op_key][field], expected_type):
+                                    actual = type(ops[op_key][field]).__name__
+                                    expected = expected_type.__name__
+                                    errors.append(f"{filename}:{op_line}:0: [error] outputs.operations.{op_key}.{field} should be {expected}, got {actual}")
+                        else:
+                            errors.append(f"{filename}:{section_line}:0: [error] outputs.operations.UploadToAzureStorageFromRedis should be dict, got {type(ops[op_key]).__name__}.")
+
+                    elif op_key == 'GenerateSasLink':
+                        if isinstance(ops[op_key], dict):
+                            for k, v in ops[op_key].items():
+                                if not isinstance(v, str):
+                                    val_type = type(v).__name__
+                                    errors.append(f"{filename}:{op_line}:0: [error] outputs.operations.GenerateSasLink.{k} should be str, got {val_type}")
+                        else:
+                            errors.append(f"{filename}:{section_line}:0: [error] outputs.operations.GenerateSasLink should be dict, got {type(ops[op_key]).__name__}.")
+
+                    elif op_key == 'Email':
+                        if isinstance(ops[op_key], dict):
+                            for field, expected_type in email_schema.items():
+                                if field not in ops[op_key]:
+                                    errors.append(f"{filename}:{op_line}:0: [info] outputs.operations.Email.{field} was found in the schema but not in the config file.")
+                                elif not isinstance(ops[op_key][field], expected_type):
+                                    actual = type(ops[op_key][field]).__name__
+                                    expected = expected_type.__name__
+                                    errors.append(f"{filename}:{op_line}:0: [error] outputs.operations.Email.{field} should be {expected}, got {actual}")
+                        else:
+                            errors.append(f"{filename}:{section_line}:0: [error] outputs.operations.Email should be dict, got {type(ops[op_key]).__name__}.")
+
+            else:
+                errors.append(f"{filename}:{section_line}:0: [error] outputs.operations should be dict, got {type(entry['operations']).__name__}.")
+        else:
+            errors.append(f"{filename}:{section_line}:0: [error] outputs.operations was found in the schema but is missing in the config file.")
+
+
+    return errors
 
 
 def validate_semantics(config_path):
+
+    #print("\n===== ", config_path, " =====\n")
     try:
         #with open(config_path, "r") as f:
         with open(config_path) as f:
@@ -192,7 +303,7 @@ def validate_semantics(config_path):
     if "ouputs" not in data:
         errors.append("Missing output sections.")
     else:
-        output_errors = validate_output(data['ouputs'], config_path)
+        output_errors = validate_output(data['ouputs'], config_path, data)
         errors.extend(output_errors)
     
 
@@ -201,7 +312,26 @@ def validate_semantics(config_path):
     if not errors:
         print("No type-checking errors.")
     else:
+        grouped = defaultdict(list)
         for error in errors:
-            print(error)
+            if "]" in error:
+                tag_start = error.find("[")
+                tag_end = error.find("]", tag_start) + 1
+                tag = error[tag_start:tag_end]
+                grouped[tag].append(error)
+            else:
+                grouped["[misc]"].append(error)
+
+        tag_labels = {
+            "[error]": "Errors",
+            "[info]": "Info"
+        }
+
+        for tag in sorted(grouped):
+            print(f"\n{tag_labels.get(tag, tag)}:")
+            for error in grouped[tag]:
+                print(f"  {error}")
+
+    
 
     return config_path

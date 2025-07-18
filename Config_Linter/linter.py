@@ -24,8 +24,9 @@ def main():
     #path_to_config = find_config_path(config_file)
 
     #print("found file at: ", path_to_config)
-
-    #path_to_config = validate_syntax(path_to_config)
+    print("=== Starting syntax analysis. ===\n")
+    path_to_config = validate_syntax(path_to_config)
+    print("\n=== Starting semantic analysis. ===\n")
     path_to_config = validate_semantics(path_to_config)
 
 

@@ -5,4 +5,5 @@ rules:
     max: 120
     level: warning
   new-lines: enable
-  document-start: enable 
+  document-start: enable
+  new-lines: disable
