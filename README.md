@@ -39,19 +39,5 @@ The output (in the output panel) will be of the following form:
 
 <!-- Fix the <> in the following 2 points. they are not rendering as intended on GitHub-->
 
-1. [error] Field '<field in .yaml file>' should be '<<expected type>>', got '<found type>'. 
+1. [error] Field '<field in .yaml file>' should be <'expected type'>, got '<found type>'. 
 2. [info] '<field in SQL template file>' was found in the SQL template/schema but not in the config file.
-
-
-
-
-
-<!--  ## 2. Report CoPilot
-
-Not yet attempted.
-Use current available SQL templates and config files, train an LLM to assist Data Analysts with config file creation, doing 'code completion' and error checking/linting on config files.
-
-## 3. Report Builder
-
-Not yet attempted.
-use current available SQL templates and config files, train an LLM to assist Data Analysts with report creation, using text prompts to generate a report. -->
