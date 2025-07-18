@@ -24,6 +24,18 @@ type_map = {
 }
 
 def get_sql_template_and_params(inputs):
+    """
+    Loads the SQL template schema and parameter values based on the input entry.
+
+    Args:
+        inputs (list[dict]): List of input dictionaries from the YAML file.
+
+    Returns:
+        tuple[dict or None, dict or None]: 
+            - The 'sql_params' dict from the input entry.
+            - The expected schema loaded from the corresponding SQL schema YAML file.
+    """
+
 
     if not inputs or not isinstance(inputs[0], dict):
         return None, None
@@ -43,16 +55,49 @@ def get_sql_template_and_params(inputs):
     return sql_params, sql_schema
         
 def load_sql_template(template_name, folder="sql_templates"):
+    """
+    Loads the raw SQL template text from a file.
+
+    Args:
+        template_name (str): Filename of the SQL template.
+        folder (str): Directory where SQL templates are stored.
+
+    Returns:
+        str: Raw contents of the SQL template file.
+    """
+
     path = f"{folder}/{template_name}"
     with open(path, "r") as f:
         return f.read()
 
 def extract_jinja_variables(sql_text):
+    """
+    Parses the SQL template using Jinja2 and extracts all undeclared variables.
+
+    Args:
+        sql_text (str): Jinja-enabled SQL template string.
+
+    Returns:
+        set[str]: A set of variable names used in the template.
+    """
+
     env = Environment()
     ast = env.parse(sql_text)
     return meta.find_undeclared_variables(ast)
 
 def validate_dags(data, config_path, yaml_data) -> list:
+    """
+    Validates the 'dag' section of the YAML file against a predefined schema.
+
+    Args:
+        data (dict): Parsed 'dag' section from YAML.
+        config_path (str): Path to the YAML file (used for error messages).
+        yaml_data (ruamel.yaml object): Full parsed YAML content with line number metadata.
+
+    Returns:
+        list[str]: List of formatted error/info messages for the dag section.
+    """
+
     dag_schema = {
         'owner': str,
         'domain_id': int,
@@ -89,11 +134,33 @@ def validate_dags(data, config_path, yaml_data) -> list:
     return errors
 
 def parse_type(val):
+    """
+    Maps a YAML schema type string (or list of strings) to Python type(s) using the global type_map.
+
+    Args:
+        val (str or list): Type name(s) from the SQL parameter schema.
+
+    Returns:
+        type or tuple[type]: Corresponding Python type or tuple of types.
+    """
+
     if isinstance(val, list):
         return tuple(type_map[v] for v in val)
     return type_map[val]
 
 def validate_inputs(inputs, config_path, yaml_data) -> list:
+    """
+    Validates the 'inputs' section against a predefined schema and cross-checks with the SQL template schema.
+
+    Args:
+        inputs (list[dict]): List of input entries from YAML.
+        config_path (str): Path to the config YAML file.
+        yaml_data (ruamel.yaml object): Full parsed YAML with line metadata.
+
+    Returns:
+        list[str]: List of errors and info messages for the 'inputs' and 'sql_params' sections.
+    """
+
     errors = []
     filename = Path(config_path).name
 
@@ -155,6 +222,18 @@ def validate_inputs(inputs, config_path, yaml_data) -> list:
     return errors
 
 def validate_output(data, config_path, yaml_data) -> list:
+    """
+    Validates the 'outputs' section and its nested 'operations' fields using hierarchical schema checks.
+
+    Args:
+        data (list[dict]): List of output entries from YAML.
+        config_path (str): Path to the YAML config file.
+        yaml_data (ruamel.yaml object): Full parsed YAML data with line metadata.
+
+    Returns:
+        list[str]: List of errors and info messages for the 'outputs' section and its operations.
+    """
+
 
     output_schema = {
         'process': str,
@@ -271,8 +350,17 @@ def validate_output(data, config_path, yaml_data) -> list:
 
     return errors
 
-
 def validate_semantics(config_path):
+    """
+    Loads a YAML file and performs semantic validation on its 'dag', 'inputs', and 'outputs' sections.
+
+    Args:
+        config_path (str): Path to the YAML file.
+
+    Returns:
+        str: Path to the YAML file (for consistency with syntax validator).
+    """
+
 
     #print("\n===== ", config_path, " =====\n")
     try:

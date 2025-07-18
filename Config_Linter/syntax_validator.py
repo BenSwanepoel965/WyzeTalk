@@ -7,6 +7,17 @@ from pathlib import Path
 max_passes = 20
 
 def find_lint_path(filename, base_dir="Config_Linter"):
+    """
+    Recursively searches for the specified file (.yamllint) within the given base directory.
+
+    Args:
+        filename (str): Name of the file to search for.
+        base_dir (str): Directory to start the search from.
+
+    Returns:
+        str or None: Full path to the file if found, otherwise None.
+    """
+
     for root, _, files in os.walk(base_dir):
         
         if filename in files:
@@ -14,6 +25,19 @@ def find_lint_path(filename, base_dir="Config_Linter"):
     return None
 
 def yamllint_check(filepath, lint_path=".yamllint"):
+    """
+    Runs yamllint on the specified YAML file using a given configuration.
+
+    Args:
+        filepath (str or Path): Path to the YAML file.
+        lint_path (str): Path to the yamllint config file (default: '.yamllint').
+
+    Returns:
+        tuple[bool or None, str or None]: 
+            - Boolean indicating if the file passed yamllint (None if yamllint failed to run).
+            - Stdout output from yamllint or None.
+    """
+
 
     lint_path = find_lint_path(lint_path)
 
@@ -25,6 +49,16 @@ def yamllint_check(filepath, lint_path=".yamllint"):
         return result.returncode == 0, result.stdout
 
 def parse_yamllint_errors(output):
+    """
+    Uses regex to break up yamllint's output in 'parsable' format into structured error dictionaries.
+
+    Args:
+        output (str): Raw string output from yamllint.
+
+    Returns:
+        list[dict]: A list of dictionaries, each representing a linting error.
+    """
+
     parsed = []
     for line in output.strip().splitlines():
         match = re.match(r"(.+):(\d+):(\d+): \[(\w+)\] (.+?) \((.+)\)", line)
@@ -40,6 +74,18 @@ def parse_yamllint_errors(output):
     return parsed
 
 def fix_indentation(lines, i, message):
+    """
+    Attempts to correct indentation errors and recursively re-indents child lines if necessary.
+
+    Args:
+        lines (list[str]): List of all lines in the YAML file.
+        i (int): Index of the line with the indentation error.
+        message (str): Error message from yamllint.
+
+    Returns:
+        list[str]: Modified list of lines with indentation adjustments.
+    """
+
     expected_match = re.search(r"expected (\d+)", message)
     found_match = re.search(r"found (\d+)", message)
     at_least_match = re.search(r"at least (\d+)", message)
@@ -90,20 +136,49 @@ def fix_indentation(lines, i, message):
     return lines
 
 def fix_document_start(lines):
+    """
+    Ensures the YAML document starts with '---' by inserting it if missing.
+
+    Args:
+        lines (list[str]): List of lines in the YAML file.
+
+    Returns:
+        list[str]: Updated list with document start marker inserted if needed.
+    """
+
     if not lines[0].strip().startswith("---"):
         lines.insert(0, "---\n")
     return lines
 
 def fix_colon_spacing(line_text, col_index):
+    """
+    Fixes spacing after a colon by stripping leading spaces before/after it.
+
+    Args:
+        line_text (str): The full text of the line containing the colon.
+        col_index (int): The index of the colon character.
+
+    Returns:
+        str: Line with corrected spacing after the colon.
+    """
+
     before = line_text[:col_index + 1]
     after = line_text[col_index + 1:].lstrip()
     return before + after
 
-def fix_line_length(line_text, max_length=120):
-    # Just truncate for now or ignore in config instead
-    return line_text[:max_length] + "\n"
-
 def fix_syntax_error(lines, i, message):
+    """
+    Attempts to auto-correct certain block structure and indentation-related syntax errors.
+
+    Args:
+        lines (list[str]): List of all lines in the YAML file.
+        i (int): Line number where the syntax error occurs.
+        message (str): Error message detailing the syntax issue.
+
+    Returns:
+        list[str]: Modified list of lines with attempted syntax fixes applied.
+    """
+
     def get_indent_level(line):
         return len(line) - len(line.lstrip())
 
@@ -158,14 +233,32 @@ def fix_syntax_error(lines, i, message):
     #lines[i] = " " * current_indent + "# SYNTAX ERROR - check manually:\n" + line
     return lines
 
-def fix_empty_lines(lines):
-    return lines
-
 def fix_trailing_spaces(line):
+    """
+    Removes trailing whitespace from a line and ensures it ends with a newline character.
+
+    Args:
+        line (str): A single line from the YAML file.
+
+    Returns:
+        str: Cleaned-up line with no trailing spaces.
+    """
+
     line = line.rstrip() + "\n"
     return line
 
 def auto_fix_yaml(filepath, lintpath = ".yamllint"):
+    """
+    Iteratively applies yamllint, parses issues, and attempts automatic fixes for supported rules.
+
+    Args:
+        filepath (str): Path to the YAML file to fix.
+        lintpath (str): Path to the yamllint config file.
+
+    Returns:
+        str: Path to the final (possibly modified) YAML file.
+    """
+
     with open(filepath, 'r') as f:
         lines = f.readlines()
 
@@ -227,12 +320,8 @@ def auto_fix_yaml(filepath, lintpath = ".yamllint"):
                 lines[i] = fix_trailing_spaces(lines[i])
             elif rule == "document-start":
                 lines = fix_document_start(lines)
-            elif rule == "line-length":
-                lines[i] = fix_line_length(lines[i])
             elif rule == "syntax":
                 lines = fix_syntax_error(lines, i, error['message'])
-            elif rule == "empty-lines":
-                lines = fix_empty_lines(lines)
 
         passes += 1
 
@@ -242,6 +331,16 @@ def auto_fix_yaml(filepath, lintpath = ".yamllint"):
     return output_path
 
 def validate_syntax(config_path):
+    """
+    Validates and optionally auto-fixes a YAML file's formatting using yamllint.
+
+    Args:
+        config_path (str): Path to the YAML file.
+
+    Returns:
+        str: Path to the validated YAML file.
+    """
+
     ok, output = yamllint_check(config_path)
 
     if ok == None:
