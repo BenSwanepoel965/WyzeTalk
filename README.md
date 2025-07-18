@@ -2,7 +2,7 @@
 
 Work done for Wyzetalk during the period of 30 Jun - 18 Jul.
 
-## 1. Config Linter
+## Config Linter
 
 Given a .yaml config file, a linter is used to check the validity of the contents inside i.t.o. syntactical and YAML formatting errors, but also config values that are invalid for the SQL template specified by the .yaml file itself, by Wyzetalk standards.
 
@@ -35,6 +35,7 @@ Please note, the "cmd" section of the above code excerpt defines the path to lin
 
 The file structure for this current script to work is:
 
+```text
 Config_Linter/
 ├── Configs/
 ├── Schemas/
@@ -44,6 +45,8 @@ Config_Linter/
 ├── semantic_validator.py
 ├── syntax_validator.py
 └── README.md
+```
+
 
 As with the yamllint documentation, there is many ways to customise how you wish your EmeraldWalk to execute. Please refer to the documentation for more information.
 
